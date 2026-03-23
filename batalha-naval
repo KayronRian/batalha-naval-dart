@@ -4,15 +4,19 @@ class Ponto {
   int x, y;
   Ponto(this.x, this.y);
 
+  // Permite comparar dois pontos pelo valor (x,y)
   @override
   bool operator ==(Object o) => o is Ponto && o.x == x && o.y == y;
+
+  // Necessário para funcionar corretamente com collections (ex: contains)
   @override
   int get hashCode => x ^ y;
 }
 
 class Cell {
-  bool temNavio = false, foiAtacado = false;
-  String display = '~';
+  bool temNavio = false;   // indica se há navio na célula (não é usado na lógica principal)
+  bool foiAtacado = false; // controla se já foi atacado
+  String display = '~';    // o que aparece no tabuleiro (~, X, O, número)
 }
 
 const tamanho = 16;
@@ -25,10 +29,13 @@ void main() {
     stdout.write('ENTER pra jogar ou "sair": ');
     if (stdin.readLineSync()?.toLowerCase() == 'sair') break;
 
+    // Cria tabuleiro 16x16
     var tab = List.generate(tamanho, (_) => List.generate(tamanho, (_) => Cell()));
 
+    // Cada jogador posiciona seu navio (lista de 3 pontos)
     var n1 = posicionarNavio(1), n2 = posicionarNavio(2);
 
+    // Marca presença dos navios (não usado diretamente na lógica de acerto)
     for (var p in [...n1, ...n2]) tab[p.x][p.y].temNavio = true;
 
     int a1 = 0, a2 = 0, turno = 1;
@@ -45,10 +52,16 @@ void main() {
       } while (l == null || c == null || l < 0 || c < 0 || l >= tamanho || c >= tamanho);
 
       var cell = tab[l][c];
-      if (cell.foiAtacado) continue;
+
+      // Evita atacar o mesmo lugar
+      if (cell.foiAtacado) {
+        print('Já atacou aqui');
+        continue;
+      }
 
       cell.foiAtacado = true;
 
+      // Verifica se acertou o navio do adversário
       bool acertou = (turno == 1 ? n2 : n1).contains(Ponto(l, c));
 
       if (acertou) {
@@ -56,6 +69,7 @@ void main() {
         cell.display = 'X';
         turno == 1 ? a1++ : a2++;
 
+        // Vitória ao acertar as 3 partes do navio
         if (a1 == 3 || a2 == 3) {
           print('Time $turno venceu');
           turno == 1 ? p1++ : p2++;
@@ -63,8 +77,11 @@ void main() {
         }
       } else {
         print('acertou a água');
-        cell.display = 'O';
-        revelarAdjacente(Ponto(l, c), turno == 1 ? n2 : n1, tab, '$turno');
+        
+        // Mostra dica baseada nos vizinhos (função ajustada)
+        revelarAdjacente(Ponto(l, c), turno == 1 ? n2 : n1, tab);
+
+        // Troca turno
         turno = turno == 1 ? 2 : 1;
       }
     }
@@ -73,21 +90,27 @@ void main() {
   }
 }
 
+// Cria um navio de tamanho 3 baseado em posição inicial e orientação
 List<Ponto> posicionarNavio(int j) {
   while (true) {
     stdout.write('J$j Linha: '); int l = int.tryParse(stdin.readLineSync() ?? '') ?? -1;
     stdout.write('J$j Coluna: '); int c = int.tryParse(stdin.readLineSync() ?? '') ?? -1;
     stdout.write('Horizontal/Vertical: '); String o = stdin.readLineSync()?.toUpperCase() ?? '';
 
+    // Valida entrada
     if (l < 0 || c < 0 || l >= tamanho || c >= tamanho || (o != 'H' && o != 'V')) continue;
 
     var navio = <Ponto>[];
     bool ok = true;
 
+    // Monta o navio com 3 posições
     for (int i = 0; i < 3; i++) {
       int nl = o == 'H' ? l : l + i;
       int nc = o == 'H' ? c + i : c;
+
+      // Verifica se saiu do tabuleiro
       if (nl >= tamanho || nc >= tamanho) ok = false;
+
       navio.add(Ponto(nl, nc));
     }
 
@@ -95,13 +118,14 @@ List<Ponto> posicionarNavio(int j) {
   }
 }
 
+// Função ajustada: mostra quantas partes do navio estão próximas
 void revelarAdjacente(Ponto p, List<Ponto> navio, List<List<Cell>> tab) {
   int contador = 0;
 
+  // Percorre vizinhos (3x3 ao redor)
   for (int dx = -1; dx <= 1; dx++) {
     for (int dy = -1; dy <= 1; dy++) {
-      int l = p.x + dx;
-      int c = p.y + dy;
+      int l = p.x + dx, c = p.y + dy;
 
       if (l >= 0 && c >= 0 && l < tamanho && c < tamanho) {
         if (navio.contains(Ponto(l, c))) {
@@ -111,9 +135,11 @@ void revelarAdjacente(Ponto p, List<Ponto> navio, List<List<Cell>> tab) {
     }
   }
 
-  // Marca o local com número de partes próximas
+  // Marca número de partes próximas ou 'O' se nenhuma
   tab[p.x][p.y].display = contador == 0 ? 'O' : contador.toString();
+}
 
+// Imprime o tabuleiro
 void imprimir(List<List<Cell>> t) {
   stdout.write('   ');
   for (int i = 0; i < tamanho; i++) stdout.write('${i.toString().padLeft(2)} ');
