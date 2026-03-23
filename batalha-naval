@@ -100,7 +100,7 @@ void revelarAdjacente(Ponto p, List<Ponto> navio, List<List<Cell>> tab, String m
     for (int dy = -1; dy <= 1; dy++) {
       int l = p.x + dx, c = p.y + dy;
       if (l >= 0 && c >= 0 && l < tamanho && c < tamanho &&
-          navio.contains(Ponto(l, c)) && tab[l][c].display == '~') {
+          navio.contains(Ponto(l, c)) && tab[l][c].display == '&') {
         tab[l][c].display = m;
       }
     }
