@@ -95,17 +95,24 @@ List<Ponto> posicionarNavio(int j) {
   }
 }
 
-void revelarAdjacente(Ponto p, List<Ponto> navio, List<List<Cell>> tab, String m) {
+void revelarAdjacente(Ponto p, List<Ponto> navio, List<List<Cell>> tab) {
+  int contador = 0;
+
   for (int dx = -1; dx <= 1; dx++) {
     for (int dy = -1; dy <= 1; dy++) {
-      int l = p.x + dx, c = p.y + dy;
-      if (l >= 0 && c >= 0 && l < tamanho && c < tamanho &&
-          navio.contains(Ponto(l, c)) && tab[l][c].display == '&') {
-        tab[l][c].display = m;
+      int l = p.x + dx;
+      int c = p.y + dy;
+
+      if (l >= 0 && c >= 0 && l < tamanho && c < tamanho) {
+        if (navio.contains(Ponto(l, c))) {
+          contador++;
+        }
       }
     }
   }
-}
+
+  // Marca o local com número de partes próximas
+  tab[p.x][p.y].display = contador == 0 ? 'O' : contador.toString();
 
 void imprimir(List<List<Cell>> t) {
   stdout.write('   ');
