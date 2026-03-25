@@ -1,0 +1,175 @@
+import 'dart:io';
+
+// Classe para armazenar coordenadas de uma célula (linha e coluna)
+class Ponto {
+  int x, y;
+  Ponto(this.x, this.y);
+}
+
+// Classe para representar um navio
+class Navio {
+  List<Ponto> partes; // lista de posições do navio
+  int dono;           // 1 ou 2, indica a quem pertence
+  int acertos = 0;    // quantas partes do navio foram acertadas
+  Navio(this.partes, this.dono);
+}
+
+// Classe para representar uma célula do tabuleiro
+class Cell {
+  bool foiAtacado = false; // indica se a célula já foi atacada
+  String display = '~';    // simbolo mostrado na célula (~ água, X acerto, número adjacente)
+  Navio? navio;            // referência para o navio que ocupa a célula (se houver)
+}
+
+const tamanho = 16; // tamanho do tabuleiro (16x16)
+
+void main() {
+  int p1 = 0, p2 = 0; // placar dos jogadores
+
+  while (true) {
+    print('\nPlacar: $p1 x $p2');
+    stdout.write('ENTER pra jogar ou "sair": ');
+    if (stdin.readLineSync()?.toLowerCase() == 'sair') break;
+
+    // cria o tabuleiro vazio
+    var tab = List.generate(
+      tamanho,
+      (_) => List.generate(tamanho, (_) => Cell()),
+    );
+
+    // cada jogador posiciona seu navio
+    var n1 = criarNavio(tab, 1);
+    var n2 = criarNavio(tab, 2);
+
+    int turno = 1;   // jogador 1 começa
+    bool fim = false; // controle de fim de partida
+
+    while (!fim) {
+      print('\nTurno $turno');
+      imprimir(tab);
+
+      int? l, c;
+      // lê posição válida do jogador
+      do {
+        stdout.write('Linha: ');
+        l = int.tryParse(stdin.readLineSync() ?? '');
+        stdout.write('Coluna: ');
+        c = int.tryParse(stdin.readLineSync() ?? '');
+      } while (l == null || c == null || l < 0 || c < 0 || l >= tamanho || c >= tamanho);
+
+      var cell = tab[l][c];
+
+      if (cell.foiAtacado) {
+        print('Ja atacou aqui');
+        continue;
+      }
+
+      cell.foiAtacado = true; // marca a célula como atacada
+      Navio? navAlvo = cell.navio;
+
+      if (navAlvo != null) {
+        print('BOOM');
+        cell.display = 'X'; // marca só a célula atingida
+
+        navAlvo.acertos++; // conta acertos do navio
+
+        // verifica se o navio adversário foi completamente destruído
+        bool acertouNavioInimigo =
+            (turno == 1 && navAlvo.dono == 2) ||
+            (turno == 2 && navAlvo.dono == 1);
+
+        if (acertouNavioInimigo && navAlvo.acertos == navAlvo.partes.length) {
+          print('Time $turno venceu!');
+          turno == 1 ? p1++ : p2++;
+          fim = true;
+        }
+      } else {
+        print('Acertou a agua');
+        revelarAdjacente(Ponto(l, c), tab); // mostra número de navios adjacentes
+      }
+
+      turno = turno == 1 ? 2 : 1; // alterna turno
+    }
+
+    imprimir(tab);
+  }
+}
+
+// Função para criar um navio no tabuleiro
+Navio criarNavio(List<List<Cell>> tab, int j) {
+  while (true) {
+    stdout.write('J$j Linha: ');
+    int l = int.tryParse(stdin.readLineSync() ?? '') ?? -1;
+
+    stdout.write('J$j Coluna: ');
+    int c = int.tryParse(stdin.readLineSync() ?? '') ?? -1;
+
+    stdout.write('Horizontal/Vertical: ');
+    String o = stdin.readLineSync()?.toUpperCase() ?? '';
+
+    if (l < 0 || c < 0 || l >= tamanho || c >= tamanho || (o != 'H' && o != 'V')) {
+      continue;
+    }
+
+    var partes = <Ponto>[];
+    bool ok = true;
+
+    for (int i = 0; i < 3; i++) {
+      int nl = o == 'H' ? l : l + i;
+      int nc = o == 'H' ? c : c + i;
+
+      if (nl >= tamanho || nc >= tamanho) {
+        ok = false;
+      } else if (tab[nl][nc].navio != null) {
+        ok = false; // impede sobreposição de navios
+      }
+
+      partes.add(Ponto(nl, nc));
+    }
+
+    if (!ok) continue;
+
+    var navio = Navio(partes, j);
+    for (var p in partes) {
+      tab[p.x][p.y].navio = navio;
+    }
+
+    return navio;
+  }
+}
+
+// Função para mostrar quantos navios estão adjacentes a uma célula
+void revelarAdjacente(Ponto p, List<List<Cell>> tab) {
+  int contador = 0;
+
+  for (int dx = -1; dx <= 1; dx++) {
+    for (int dy = -1; dy <= 1; dy++) {
+      int l = p.x + dx, c = p.y + dy;
+
+      if (l >= 0 && c >= 0 && l < tamanho && c < tamanho) {
+        if (tab[l][c].navio != null) {
+          contador++;
+        }
+      }
+    }
+  }
+
+  tab[p.x][p.y].display = contador == 0 ? 'O' : contador.toString();
+}
+
+// Função para imprimir o tabuleiro
+void imprimir(List<List<Cell>> t) {
+  stdout.write('   ');
+  for (int i = 0; i < tamanho; i++) {
+    stdout.write('${i.toString().padLeft(2)} ');
+  }
+  print('');
+
+  for (int i = 0; i < tamanho; i++) {
+    stdout.write('${i.toString().padLeft(2)} ');
+    for (int j = 0; j < tamanho; j++) {
+      stdout.write(' ${t[i][j].display} ');
+    }
+    print('');
+  }
+}
